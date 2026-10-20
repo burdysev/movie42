@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Дубль</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg:#0e0c14; --panel:#1a1622; --panel2:#252032; --line:#3a3050;
+    --text:#ece6f5; --muted:#8a80a0;
+    --accent:#d4a04a; --accent2:#f0c070;
+    --good:#6ad49a; --bad:#d46a6a;
+  }
+  html,body{min-height:100%;overflow-x:hidden;}
+  body{
+    font-family:Georgia,'Times New Roman',serif;
+    background:radial-gradient(ellipse at top,#1e1a2e 0%,#0a0810 70%);
+    color:var(--text); line-height:1.5; min-height:100vh;
+  }
+  button{font-family:inherit;cursor:pointer;min-height:40px;touch-action:manipulation;}
+  input,select{font-family:inherit;touch-action:manipulation;}
+  #app{max-width:1280px;margin:0 auto;padding:16px;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .menu-wrap{min-height:calc(100dvh - 32px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
+  .menu-deco{font-size:64px;margin-bottom:20px;}
+  .menu-title{font-size:clamp(36px,8vw,72px);color:var(--accent);letter-spacing:3px;text-shadow:0 4px 30px rgba(212,160,74,0.4);margin-bottom:8px;}
+  .menu-sub{color:var(--muted);font-style:italic;font-size:clamp(14px,2vw,18px);margin-bottom:44px;max-width:520px;}
+  .menu-buttons{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;}
+  .menu-btn{padding:14px 24px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;font-size:17px;transition:all 0.2s;}
+  .menu-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .menu-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a1020;border:none;font-weight:bold;}
+  .menu-btn.primary:hover{filter:brightness(1.1);}
+  .menu-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+  .create-wrap{min-height:calc(100dvh - 32px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+  .create-form{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:28px;max-width:480px;width:100%;display:flex;flex-direction:column;gap:14px;}
+  .create-form h2{color:var(--accent);text-align:center;margin-bottom:8px;}
+  .create-form label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:-6px;}
+  .create-form input{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:12px 14px;border-radius:8px;font-size:16px;}
+  .create-form input:focus{outline:none;border-color:var(--accent);}
+  .style-choices{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .style-btn{background:var(--panel2);border:2px solid var(--line);color:var(--text);padding:12px 6px;border-radius:8px;font-size:12px;text-align:center;display:flex;flex-direction:column;gap:4px;transition:all 0.2s;min-height:auto;}
+  .style-btn strong{color:var(--accent);font-size:13px;}
+  .style-btn span{color:var(--muted);font-size:11px;font-style:italic;}
+  .style-btn.active{border-color:var(--accent);background:var(--panel);}
+
+  .topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:14px;}
+  .tb-item{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .tb-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
+  .tb-item > span:last-child{color:var(--accent);font-size:15px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tb-speed{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;}
+  .tb-speed button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);padding:6px 10px;border-radius:6px;font-size:12px;min-height:32px;}
+  .tb-speed button.active{background:var(--accent);color:#1a1020;border-color:var(--accent);font-weight:bold;}
+
+  .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-height:200px;}
+  .panel-title{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+  .panel-title:not(:first-child){margin-top:20px;}
+  .empty-state{color:var(--muted);font-size:13px;font-style:italic;padding:20px 0;text-align:center;}
+
+  .film-card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;}
+  .film-card.player-film{border-color:var(--accent);}
+  .film-card.compact{padding:8px 10px;margin-bottom:6px;}
+  .film-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;}
+  .film-title{color:var(--text);font-weight:bold;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
+  .film-genre{font-size:11px;color:var(--accent);background:rgba(212,160,74,0.15);padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;}
+  .film-progress{height:6px;background:#0a0810;border-radius:3px;overflow:hidden;margin-bottom:8px;}
+  .film-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 0.3s;}
+  .film-stats{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);gap:8px;margin-top:4px;}
+  .film-stats .bo{color:var(--good);font-weight:bold;}
+  .film-stats .share{color:var(--accent);}
+  .ratings-line{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+  .rating{display:inline-block;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:bold;white-space:nowrap;}
+  .rating.good{background:rgba(106,212,154,0.18);color:var(--good);}
+  .rating.ok{background:rgba(212,160,74,0.18);color:var(--accent);}
+  .rating.bad{background:rgba(212,106,106,0.18);color:var(--bad);}
+
+  .comp-header{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;margin:14px 0 8px;background:rgba(212,160,74,0.1);border-radius:6px;font-size:12px;color:var(--accent);}
+  .comp-header strong{color:var(--accent2);}
+  .comp-more{text-align:center;color:var(--muted);font-size:11px;font-style:italic;padding:6px 0;}
+
+  .action-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#1a1020;border:none;border-radius:8px;font-size:15px;font-weight:bold;letter-spacing:1px;margin-top:8px;}
+  .action-btn:hover:not(:disabled){filter:brightness(1.1);}
+  .action-btn:disabled{background:var(--panel2);color:var(--muted);cursor:not-allowed;}
+
+  .trend-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;}
+  .trend-row .tname{width:100px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .trend-row .tbar-wrap{flex:1;height:6px;background:#0a0810;border-radius:3px;overflow:hidden;}
+  .trend-row .tbar{height:100%;background:var(--accent);transition:width 0.5s;}
+  .trend-row.hot .tname{color:var(--accent);font-weight:bold;}
+  .trend-row.hot .tbar{background:linear-gradient(90deg,var(--accent),var(--accent2));}
+
+  .lb-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;font-size:12px;border-radius:4px;margin-bottom:2px;}
+  .lb-row .lb-rank{color:var(--muted);width:26px;font-weight:bold;}
+  .lb-row .lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lb-row .lb-score{color:var(--accent);font-size:11px;flex-shrink:0;margin-left:6px;}
+  .lb-row.player{background:rgba(212,160,74,0.18);}
+  .lb-row.player .lb-name{color:var(--accent);font-weight:bold;}
+  .lb-row.top1 .lb-rank{color:var(--accent2);}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);color:var(--text);padding:12px 20px;border-radius:8px;font-size:14px;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:calc(100% - 32px);text-align:center;}
+  .toast.show{opacity:1;}
+
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+  .modal.show{display:flex;}
+  .modal-content{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:22px;max-width:560px;width:100%;max-height:calc(100dvh - 32px);overflow-y:auto;margin:auto;}
+  .modal-content h2{color:var(--accent);margin-bottom:16px;text-align:center;font-size:20px;}
+
+  .modal-section{margin-bottom:16px;}
+  .modal-section-title{color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+
+  .title-input-row{display:flex;gap:8px;}
+  .title-input-row input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:8px;font-size:15px;min-width:0;}
+  .title-input-row input:focus{outline:none;border-color:var(--accent);}
+  .title-input-row button{background:var(--panel2);border:1px solid var(--line);color:var(--accent);padding:10px 14px;border-radius:8px;font-size:16px;flex-shrink:0;min-height:44px;}
+
+  .genre-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .genre-btn{background:var(--panel2);border:2px solid var(--line);color:var(--text);padding:8px 4px;border-radius:8px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.2s;min-height:auto;position:relative;}
+  .genre-btn .gicon{font-size:20px;}
+  .genre-btn.active{border-color:var(--accent);background:var(--panel);color:var(--accent);}
+  .genre-btn .hot-tag{position:absolute;top:1px;right:3px;font-size:11px;}
+
+  .options-row{display:grid;gap:6px;}
+  .options-row.cols-3{grid-template-columns:repeat(3,1fr);}
+  .options-row.cols-4{grid-template-columns:repeat(4,1fr);}
+  .option-btn{background:var(--panel2);border:2px solid var(--line);color:var(--text);padding:8px 4px;border-radius:8px;font-size:12px;transition:all 0.2s;position:relative;min-height:auto;}
+  .option-btn.active{border-color:var(--accent);background:var(--panel);color:var(--accent);}
+  .option-btn.recommended::after{content:'💡';position:absolute;top:1px;right:3px;font-size:10px;}
+
+  .slider-row{margin-bottom:12px;}
+  .slider-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;font-size:12px;color:var(--muted);}
+  .slider-label strong{color:var(--accent);font-size:13px;}
+  .slider-hint{font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;}
+  input[type=range]{width:100%;accent-color:var(--accent);height:32px;background:transparent;}
+
+  .actor-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;}
+  .actor-card{background:var(--panel2);border:2px solid var(--line);color:var(--text);padding:8px 10px;border-radius:8px;font-size:12px;transition:all 0.2s;display:flex;flex-direction:column;gap:3px;min-height:auto;text-align:left;}
+  .actor-card.active{border-color:var(--accent);background:var(--panel);}
+  .actor-card .actor-name{font-weight:bold;color:var(--accent);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .actor-card .actor-stat{font-size:11px;color:var(--muted);}
+  .actor-card .actor-cost{color:var(--text);font-weight:bold;font-size:12px;}
+  .actor-card .actor-fav{font-size:11px;color:var(--muted);}
+
+  .budget-bar{background:var(--panel2);border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;font-size:13px;gap:8px;}
+  .budget-bar .b-total{color:var(--text);}
+  .budget-bar .b-total strong{color:var(--accent);font-size:15px;}
+  .budget-bar.over{border:1px solid var(--bad);}
+  .budget-bar.over .b-total strong{color:var(--bad);}
+
+  .preview-box{background:var(--panel2);border-radius:8px;padding:12px;margin-bottom:12px;}
+  .preview-box .preview-title{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+  .preview-row{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:4px;}
+  .preview-row .val{color:var(--accent);font-weight:bold;white-space:nowrap;}
+
+  .modal-actions{display:flex;gap:8px;margin-top:12px;}
+  .modal-actions button{flex:1;}
+
+  .help-text p{margin-bottom:12px;font-size:14px;line-height:1.6;}
+  .help-text ul{margin:8px 0 12px 20px;font-size:14px;}
+  .help-text li{margin-bottom:4px;}
+  .help-text strong{color:var(--accent);}
+  .result-detail{color:var(--muted);font-size:13px;font-style:italic;text-align:center;margin-bottom:16px;}
+
+  @media (max-width:900px){
+    .game-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:600px){
+    #app{padding:8px;}
+    .topbar{padding:10px;gap:8px 12px;}
+    .tb-item > span:last-child{font-size:13px;}
+    .tb-label{font-size:9px;}
+    .tb-speed{margin-left:0;width:100%;justify-content:flex-end;}
+    .tb-speed button{padding:5px 9px;font-size:11px;min-height:30px;}
+    .panel{padding:12px;min-height:auto;}
+    .panel-title{font-size:11px;margin-bottom:10px;padding-bottom:6px;}
+    .panel-title:not(:first-child){margin-top:16px;}
+    .create-form{padding:20px;gap:12px;}
+    .modal{padding:10px;}
+    .modal-content{padding:16px;max-height:calc(100dvh - 20px);}
+    .modal-content h2{font-size:17px;margin-bottom:12px;}
+    .film-card{padding:10px;}
+    .film-title{font-size:13px;}
+    .menu-deco{font-size:48px;}
+    .menu-sub{margin-bottom:32px;}
+    .genre-grid{grid-template-columns:repeat(3,1fr);gap:4px;}
+    .genre-btn{padding:6px 2px;}
+    .genre-btn .gicon{font-size:18px;}
+    .options-row.cols-4{grid-template-columns:1fr 1fr;}
+    .actor-grid{grid-template-columns:1fr 1fr;}
+    .actor-card{padding:6px 8px;font-size:11px;}
+    .actor-card .actor-name{font-size:11px;}
+  }
+  @media (max-width:400px){
+    #app{padding:6px;}
+    .genre-grid{grid-template-columns:1fr 1fr 1fr;}
+    .actor-grid{grid-template-columns:1fr;}
+    .options-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
+    .options-row.cols-4{grid-template-columns:1fr 1fr;}
+    .style-choices{grid-template-columns:1fr 1fr 1fr;gap:4px;}
+    .style-btn{padding:10px 4px;font-size:11px;}
+    .style-btn strong{font-size:12px;}
+    .modal-content{padding:14px;}
+    .title-input-row input{font-size:14px;padding:8px 10px;}
+    .title-input-row button{padding:8px 12px;font-size:14px;min-height:40px;}
+  }
+  @media (max-width:340px){
+    .genre-grid{grid-template-columns:1fr 1fr;}
+    .style-choices{grid-template-columns:1fr;}
+    .actor-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <section id="screen-menu" class="screen active">
+    <div class="menu-wrap">
+      <div class="menu-deco">🎬</div>
+      <h1 class="menu-title">Дубль</h1>
+      <p class="menu-sub">Стратегия о киностудии. 100 миллионов рублей. 100 студий. Один шанс стать первым.</p>
+      <div class="menu-buttons">
+        <button class="menu-btn primary" id="btnStart">Новая игра</button>
+        <button class="menu-btn" id="btnHelp">Как играть</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-create" class="screen">
+    <div class="create-wrap">
+      <div class="create-form">
+        <h2>Создайте студию</h2>
+        <label>Название студии</label>
+        <input type="text" id="inpStudio" value="Моя Студия" maxlength="30">
+        <label>Имя режиссёра</label>
+        <input type="text" id="inpDirector" value="Иван Петров" maxlength="30">
+        <label>Стиль</label>
+        <div class="style-choices">
+          <button class="style-btn active" data-style="visionary">
+            <strong>Визионер</strong><span>+качество</span>
+          </button>
+          <button class="style-btn" data-style="showman">
+            <strong>Шоумен</strong><span>+маркетинг</span>
+          </button>
+          <button class="style-btn" data-style="balanced">
+            <strong>Универсал</strong><span>баланс</span>
+          </button>
+        </div>
+        <button class="menu-btn primary" id="btnCreate">Основать студию</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-game" class="screen">
+    <header class="topbar">
+      <div class="tb-item" style="flex:1;min-width:80px;"><span class="tb-label">Студия</span><span id="hdrStudio">—</span></div>
+      <div class="tb-item"><span class="tb-label">Капитал</span><span id="hdrMoney">100M ₽</span></div>
+      <div class="tb-item"><span class="tb-label">Наследие</span><span id="hdrLegacy">0</span></div>
+      <div class="tb-item"><span class="tb-label">Место</span><span id="hdrRank">#100</span></div>
+      <div class="tb-item"><span class="tb-label">Время</span><span id="hdrTime">0:00</span></div>
+      <div class="tb-speed">
+        <button data-speed="1">1x</button>
+        <button data-speed="2" class="active">2x</button>
+        <button data-speed="4">4x</button>
+        <button data-speed="8">8x</button>
+      </div>
+    </header>
+    <main class="game-grid">
+      <section class="panel">
+        <h3 class="panel-title">В прокате</h3>
+        <div id="theater-list"></div>
+      </section>
+      <section class="panel">
+        <h3 class="panel-title">В производстве</h3>
+        <div id="production-list"></div>
+        <button class="action-btn" id="btnNewFilm">🎬 Запустить фильм</button>
+        <h3 class="panel-title">Тренды</h3>
+        <div id="trends-list"></div>
+      </section>
+      <section class="panel">
+        <h3 class="panel-title">Топ-10</h3>
+        <div id="leaderboard"></div>
+        <h3 class="panel-title">Ваши фильмы</h3>
+        <div id="filmography"></div>
+      </section>
+    </main>
+  </section>
+
+  <div class="modal" id="modal-help">
+    <div class="modal-content">
+      <h2>Как играть</h2>
+      <div class="help-text">
+        <p>Вы — начинающий режиссёр. 100 миллионов рублей, студия и амбиция. Цель — из третьей сотни в топ-1.</p>
+        <p><strong>Создание фильма — это баланс:</strong></p>
+        <ul>
+          <li><strong>Жанр + аудитория + сезон + продолжительность.</strong> Если они не сочетаются — оценки и касса падают.</li>
+          <li><strong>Сценарий</strong> — основа качества. Критики обожают хорошие сценарии.</li>
+          <li><strong>Визуал</strong> — критично для боевиков/фантастики/хоррора, бесполезен для драмы/романтики.</li>
+          <li><strong>Музыка</strong> — небольшой бонус ко всем оценкам.</li>
+          <li><strong>Актёры</strong> — звёзды дают кассу, таланты — качество. Совпадение жанра с любимым у актёра — двойной бонус.</li>
+          <li><strong>Режиссёр</strong> — можно снимать самому или нанять опытного.</li>
+          <li><strong>Маркетинг</strong> — больше рекламы, больше людей узнает о фильме.</li>
+        </ul>
+        <p><strong>Оценки после выхода:</strong> IMDb (общее качество), Кинопоиск (звёзды и зрелищность), RT Критики (сценарий и режиссура), RT Зрители (развлечение).</p>
+        <p>Все оценки влияют на кассу в прокате и на наследие после него. Прокат идёт 5 игровых минут.</p>
+      </div>
+      <button class="menu-btn primary" id="btnCloseHelp">Понятно</button>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-film">
+    <div class="modal-content">
+      <h2>Новый фильм</h2>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Основное</div>
+        <div class="title-input-row" style="margin-bottom:8px;">
+          <input type="text" id="inp-film-title" maxlength="40" placeholder="Название фильма">
+          <button id="btn-reroll-title" title="Случайное название">🎲</button>
+        </div>
+        <div class="genre-grid" id="genre-grid"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Аудитория</div>
+        <div class="options-row cols-4" id="audience-grid"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Сезон премьеры</div>
+        <div class="options-row cols-4" id="season-grid"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Производство</div>
+        <div class="slider-row">
+          <div class="slider-label"><span>Продолжительность</span><strong id="runtime-val">120 мин</strong></div>
+          <input type="range" id="slider-runtime" min="80" max="180" value="120" step="5">
+          <div class="slider-hint" id="runtime-hint">Оптимум для жанра: ~120 мин</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>Сценарий</span><strong id="script-val">12M ₽</strong></div>
+          <input type="range" id="slider-script" min="3" max="25" value="12" step="1">
+          <div class="slider-hint">Основа качества. Критики любят хорошие сценарии.</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>Визуал / VFX</span><strong id="vfx-val">8M ₽</strong></div>
+          <input type="range" id="slider-vfx" min="0" max="20" value="8" step="1">
+          <div class="slider-hint">Критично для боевиков, фантастики, хоррора.</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-label"><span>Музыка</span><strong id="music-val">3M ₽</strong></div>
+          <input type="range" id="slider-music" min="0" max="6" value="3" step="1">
+          <div class="slider-hint">Небольшой бонус ко всем оценкам.</div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Маркетинг</div>
+        <div class="slider-row">
+          <div class="slider-label"><span>Бюджет на рекламу</span><strong id="marketing-val">15M ₽</strong></div>
+          <input type="range" id="slider-marketing" min="5" max="30" value="15" step="1">
+          <div class="slider-hint">Больше рекламы — больше людей узнает о фильме.</div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Актёры (до 3)</div>
+        <div class="actor-grid" id="actor-grid"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Режиссёр</div>
+        <div class="actor-grid" id="director-grid" style="grid-template-columns:1fr;"></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="budget-bar" id="budget-bar">
+          <span class="b-total">Бюджет: <strong id="budget-total">0M ₽</strong></span>
+          <span style="font-size:12px;">Доступно: <strong id="budget-available" style="color:var(--accent);">100M ₽</strong></span>
+        </div>
+        <div class="preview-box">
+          <div class="preview-title">Прогноз</div>
+          <div class="preview-row"><span>IMDb</span><span class="val" id="pred-imdb">—</span></div>
+          <div class="preview-row"><span>Кинопоиск</span><span class="val" id="pred-kp">—</span></div>
+          <div class="preview-row"><span>🍅 Критики</span><span class="val" id="pred-rtc">—</span></div>
+          <div class="preview-row"><span>🍿 Зрители</span><span class="val" id="pred-rta">—</span></div>
+          <div class="preview-row"><span>Сила фильма</span><span class="val" id="pred-attraction">—</span></div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="menu-btn" id="btnCancelFilm">Отмена</button>
+        <button class="menu-btn primary" id="btnConfirmFilm">В производство</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-result">
+    <div class="modal-content">
+      <h2 id="result-title"></h2>
+      <p id="result-text"></p>
+      <p class="result-detail" id="result-detail"></p>
+      <button class="menu-btn primary" id="btnResultOk">Дальше</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ============ CONSTANTS ============
+const THEATRICAL_SECONDS = 300;
+const PRODUCTION_SECONDS = 60;
+const TREND_CHANGE_SECONDS = 240;
+const BASE_MARKET_PER_SEC = 1_000_000;
+const PER_FILM_BOOST = 300_000;
+
+const GENRES = [
+  { id:'action',  name:'Боевик',     icon:'💥' },
+  { id:'drama',   name:'Драма',      icon:'🎭' },
+  { id:'comedy',  name:'Комедия',    icon:'🎬' },
+  { id:'scifi',   name:'Фантастика', icon:'🚀' },
+  { id:'horror',  name:'Хоррор',     icon:'👻' },
+  { id:'romance', name:'Романтика',  icon:'💕' },
+];
+const GENRE_MAP = Object.fromEntries(GENRES.map(g => [g.id, g]));
+
+const AUDIENCES = [
+  { id:'children', name:'Дети' },
+  { id:'teens',    name:'Подростки' },
+  { id:'families', name:'Семьи' },
+  { id:'adults',   name:'Взрослые' },
+];
+
+const SEASONS = [
+  { id:'winter', name:'Зима' },
+  { id:'spring', name:'Весна' },
+  { id:'summer', name:'Лето' },
+  { id:'autumn', name:'Осень' },
+];
+
+const GENRE_AUD_SCORE = {
+  action:  { children:0.20, teens:0.90, families:0.50, adults:0.80 },
+  comedy:  { children:0.50, teens:0.70, families:0.90, adults:0.70 },
+  drama:   { children:0.10, teens:0.30, families:0.40, adults:0.95 },
+  horror:  { children:0.05, teens:0.90, families:0.20, adults:0.80 },
+  scifi:   { children:0.30, teens:0.80, families:0.60, adults:0.90 },
+  romance: { children:0.20, teens:0.60, families:0.60, adults:0.85 },
+};
+const GENRE_SEASON_SCORE = {
+  action:  { winter:0.80, spring:0.60, summer:0.90, autumn:0.70 },
+  comedy:  { winter:0.70, spring:0.70, summer:0.80, autumn:0.70 },
+  drama:   { winter:0.70, spring:0.60, summer:0.50, autumn:0.90 },
+  horror:  { winter:0.60, spring:0.60, summer:0.50, autumn:0.90 },
+  scifi:   { winter:0.80, spring:0.60, summer:0.80, autumn:0.70 },
+  romance: { winter:0.70, spring:0.90, summer:0.70, autumn:0.60 },
+};
+const GENRE_RUNTIME = {
+  action:120, comedy:100, drama:125, horror:100, scifi:140, romance:105,
+};
+const GENRE_VFX_IMPORTANCE = {
+  action:1.0, drama:0.30, comedy:0.30, scifi:1.0, horror:0.90, romance:0.30,
+};
+
+const ACTORS = [
+  { name:'Анна Соколова',    cost:8_000_000,  star:55, talent:80, fav:['drama','romance'] },
+  { name:'Игорь Волков',     cost:12_000_000, star:75, talent:60, fav:['action','scifi'] },
+  { name:'Мария Крылова',    cost:15_000_000, star:80, talent:70, fav:['romance','drama'] },
+  { name:'Дмитрий Орлов',    cost:20_000_000, star:90, talent:55, fav:['action'] },
+  { name:'Ольга Новикова',   cost:10_000_000, star:60, talent:85, fav:['drama'] },
+  { name:'Сергей Лебедев',   cost:6_000_000,  star:50, talent:65, fav:['comedy'] },
+  { name:'Елена Морозова',   cost:14_000_000, star:70, talent:75, fav:['drama','romance'] },
+  { name:'Виктор Громов',    cost:18_000_000, star:85, talent:60, fav:['action','horror'] },
+];
+
+const DIRECTORS = [
+  { name:'Сергей Ковалёв',  cost:15_000_000, skill:78, fav:['drama'] },
+  { name:'Андрей Захаров',  cost:12_000_000, skill:70, fav:['action','scifi'] },
+  { name:'Михаил Романов',  cost:22_000_000, skill:88, fav:['scifi','drama'] },
+];
+
+// ============ STATE ============
+const state = {
+  playing:false, time:0, speed:2,
+  player:null, studios:[], trends:{}, nextTrendChange:0,
+  filmModal:{},
+  lastRender:0, lastFrame:0,
+};
+
+// ============ UTILS ============
+function fmtMoney(n){
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B ₽';
+  if (n >= 1e6) return (n/1e6).toFixed(0) + 'M ₽';
+  if (n >= 1e3) return (n/1e3).toFixed(0) + 'K ₽';
+  return Math.floor(n) + ' ₽';
+}
+function fmtTime(sec){
+  const m = Math.floor(sec/60), s = Math.floor(sec%60);
+  return m + ':' + (s<10?'0':'') + s;
+}
+function rand(a,b){ return a + Math.random()*(b-a); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+const PREFIXES=['Золотой','Ночной','Северный','Тихий','Красный','Синий','Лунный','Звёздный','Стальной','Железный','Огненный','Ледяной','Волшебный','Тёмный','Светлый','Медный','Стеклянный','Вечный','Дикий','Первый','Последний','Великий','Быстрый','Ржавый','Серебряный','Пепельный','Ясный','Гулкий','Звонкий','Хмурый'];
+const NOUNS=['Вектор','Орёл','Феникс','Клинок','Тигр','Лев','Ворон','Кит','Сокол','Дракон','Пегас','Мираж','Экран','Кадр','Плёнка','Проектор','Софит','Рампа','Дубль','Каскад','Трюк','Сюжет','Голос','Тень','Свет','Луч','Гром','Шёпот','Зов','Путь'];
+const SUFFIXES=['Продакшн','Фильм','Студиос','Пикчерс','Медиа','Синема','Групп','Корп','Моушн','Артс','Бразерс'];
+function generateStudioNames(count){
+  const set=new Set(), out=[];
+  while(out.length<count){
+    const n=pick(PREFIXES)+' '+pick(NOUNS)+' '+pick(SUFFIXES);
+    if(!set.has(n)){ set.add(n); out.push(n); }
+  }
+  return out;
+}
+
+const TITLE_WORDS = {
+  action:['Ярость','Огонь','Погоня','Выстрел','Удар','Взрыв','Сталь','Битва','Шторм','Разлом'],
+  drama:['Тишина','Слёзы','Память','Дом','Осень','Письмо','Прощание','Сердце','Рассвет','Ветер'],
+  comedy:['Переполох','Неудачник','Свадьба','Отпуск','Соседи','Дядя','Курьёз','Праздник','Путаница','Каникулы'],
+  scifi:['Звезда','Космос','Сигнал','Горизонт','Орбита','Будущее','Робот','Планета','Квант','Нейросеть'],
+  horror:['Тень','Крик','Тьма','Кладбище','Ритуал','Проклятие','Кошмар','Шёпот','Бездна','Морок'],
+  romance:['Любовь','Встреча','Сердце','Поцелуй','Судьба','Весна','Письмо','Обещание','Танец','Свидание'],
+};
+const TITLE_NOUNS=['Ночь','День','Путь','Ветер','Дождь','Свет','Огонь','Лёд','Город','Море','Лес','Гора','Река','Дорога','Тень'];
+function generateFilmTitle(genre){
+  const first = pick(TITLE_WORDS[genre]);
+  const r = Math.random();
+  if (r < 0.4) return first;
+  if (r < 0.75) return first + ' ' + pick(TITLE_NOUNS).toLowerCase();
+  return first + ': ' + pick(TITLE_WORDS[genre]).toLowerCase();
+}
+
+// ============ SCREENS ============
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ============ INIT ============
+function initGame(studioName, directorName, style){
+  state.time=0; state.lastFrame=0; state.lastRender=0;
+  state.trends={};
+  GENRES.forEach(g => state.trends[g.id] = rand(0.2, 0.6));
+  state.nextTrendChange = TREND_CHANGE_SECONDS;
+
+  const styleSkill = { visionary:60, showman:50, balanced:55 };
+  state.player = {
+    id:0, isPlayer:true,
+    name:studioName, director:directorName, style,
+    money:100_000_000, legacy:0,
+    skill: styleSkill[style]||55,
+    films:[], productions:[], rank:100,
+  };
+
+  state.studios = [state.player];
+  const names = generateStudioNames(99);
+  for (let i=0;i<99;i++){
+    state.studios.push({
+      id:i+1, isPlayer:false,
+      name:names[i],
+      money:rand(20e6, 800e6),
+      legacy:rand(0, 500),
+      skill:rand(30, 80),
+      favoriteGenre:pick(GENRES).id,
+      films:[],
+      nextReleaseAt:rand(20, 240),
+      releaseInterval:rand(1500, 2100),
+      rank:0,
+    });
+  }
+
+  state.playing = true;
+  showScreen('game');
+  renderAll();
+  requestAnimationFrame(gameLoop);
+}
+
+// ============ LOOP ============
+function gameLoop(ts){
+  if (!state.playing) return;
+  if (!state.lastFrame) state.lastFrame = ts;
+  let dt = (ts - state.lastFrame)/1000;
+  state.lastFrame = ts;
+  dt = Math.min(dt, 1);
+  advanceGame(dt * state.speed);
+  if (ts - state.lastRender > 180){ renderAll(); state.lastRender = ts; }
+  requestAnimationFrame(gameLoop);
+}
+
+function advanceGame(dt){
+  state.time += dt;
+
+  for (const s of state.studios){
+    for (const f of s.films){
+      if (f.status === 'theaters' && state.time - f.releaseTime >= THEATRICAL_SECONDS){
+        f.status = 'done';
+        f.endTime = state.time;
+        const q = (f.ratings.imdb + f.ratings.kp) / 2;
+        f.legacy = Math.floor(q * f.boxOffice / 20_000_000);
+        s.legacy += f.legacy;
+        if (s.isPlayer) toast(`«${f.title}» завершил прокат · Наследие +${f.legacy}`);
+      }
+    }
+  }
+
+  if (state.player.productions.length){
+    for (const p of [...state.player.productions]){
+      if (state.time >= p.readyAt){
+        const film = {
+          id:Math.random().toString(36).slice(2),
+          title:p.title, genre:p.genre,
+          ratings:p.ratings,
+          attraction:p.attraction,
+          releaseTime:state.time, status:'theaters',
+          boxOffice:0, legacy:0,
+        };
+        state.player.films.push(film);
+        state.player.productions = state.player.productions.filter(x => x !== p);
+        toast(`«${film.title}» вышел! IMDb ${film.ratings.imdb} · КП ${film.ratings.kp}`);
+      }
+    }
+  }
+
+  for (const s of state.studios){
+    if (s.isPlayer) continue;
+    if (state.time >= s.nextReleaseAt){
+      releaseAIFilm(s);
+      s.nextReleaseAt = state.time + s.releaseInterval * rand(0.7, 1.3);
+    }
+  }
+
+  const inTheaters = [];
+  for (const s of state.studios){
+    for (const f of s.films){
+      if (f.status === 'theaters') inTheaters.push({ film:f, studio:s });
+    }
+  }
+  if (inTheaters.length > 0){
+    let totalAttr = 0;
+    for (const x of inTheaters) totalAttr += x.film.attraction;
+    const marketPerSec = BASE_MARKET_PER_SEC + inTheaters.length * PER_FILM_BOOST;
+    const revenue = marketPerSec * dt;
+    for (const x of inTheaters){
+      const share = x.film.attraction / totalAttr;
+      x.film.boxOffice += revenue * share;
+      x.studio.money += revenue * share;
+    }
+  }
+
+  if (state.time >= state.nextTrendChange){
+    GENRES.forEach(g => {
+      state.trends[g.id] = clamp((state.trends[g.id]||0.3) + rand(-0.25, 0.25), 0.1, 1);
+    });
+    state.nextTrendChange = state.time + TREND_CHANGE_SECONDS;
+  }
+
+  const sorted = [...state.studios].sort((a,b) => studioScore(b) - studioScore(a));
+  sorted.forEach((s,i) => s.rank = i+1);
+
+  checkGameOver();
+}
+
+function studioScore(s){
+  return (s.money/1_000_000)*0.4 + s.legacy*0.6;
+}
+
+function checkGameOver(){
+  const p = state.player;
+  const hasFilms = p.films.some(f => f.status === 'theaters');
+  const hasProd = p.productions.length > 0;
+  if (p.money < 10_000_000 && !hasFilms && !hasProd){
+    state.playing = false;
+    showResult('Разорение', 'Капитал кончился, фильмов в прокате нет. Студия продана за долги.', `Итоговое место: #${p.rank}`);
+  }
+  if (p.rank === 1){
+    state.playing = false;
+    showResult('Вершина', 'Вы — студия №1 в киноиндустрии. Из третьей сотни — в топ.', `Капитал: ${fmtMoney(p.money)} · Наследие: ${Math.floor(p.legacy)}`);
+  }
+}
+
+// ============ RATINGS & ATTRACTION ============
+function runtimeScore(genre, runtime){
+  const opt = GENRE_RUNTIME[genre];
+  const dist = Math.abs(runtime - opt);
+  return Math.max(0, 1 - dist / 60);
+}
+
+function buildFilmStats(m, preview){
+  const genre = m.genre;
+  const audScore = GENRE_AUD_SCORE[genre][m.audience];
+  const seasonScore = GENRE_SEASON_SCORE[genre][m.season];
+  const rtScore = runtimeScore(genre, m.runtime);
+  const vfxImp = GENRE_VFX_IMPORTANCE[genre];
+
+  let directorSkill;
+  if (m.directorType === 'hired' && m.hiredDirector) directorSkill = m.hiredDirector.skill;
+  else directorSkill = state.player.skill;
+
+  let actTalent = 30, actStar = 20, genreBonus = 0;
+  if (m.actors.length > 0){
+    actTalent = m.actors.reduce((s,a)=>s+a.talent, 0) / m.actors.length;
+    actStar = m.actors.reduce((s,a)=>s+a.star, 0) / m.actors.length;
+    genreBonus = m.actors.filter(a => a.fav.includes(genre)).length / m.actors.length;
+  }
+
+  const script01 = m.script / 25;
+  const vfx01 = m.vfx / 20;
+  const music01 = m.music / 6;
+  const director01 = directorSkill / 100;
+  const talent01 = actTalent / 100;
+  const star01 = actStar / 100;
+
+  // FIX: корректная функция шума
+  const noise = (min, max) => preview ? 0 : rand(min, max);
+
+  const imdb = clamp(
+    3.5 + script01*2.2 + director01*1.5 + talent01*1.5 + music01*0.5
+    + (audScore-0.5)*1.5 + (rtScore-0.5)*0.8
+    + vfx01*vfxImp*0.8 + genreBonus*0.5
+    + noise(-0.4, 0.4), 1, 10
+  );
+  const kp = clamp(
+    3.0 + script01*1.6 + director01*1.0 + talent01*1.0 + star01*1.8
+    + music01*0.4 + (audScore-0.5)*1.5 + vfx01*1.4 + genreBonus*0.8
+    + noise(-0.4, 0.4), 1, 10
+  );
+  const rtc = clamp(
+    15 + script01*30 + director01*22 + talent01*12 + music01*6
+    + (rtScore-0.5)*10 + vfx01*vfxImp*8 + genreBonus*5
+    + (audScore-0.5)*8 + noise(-5, 5), 5, 99
+  );
+  const rta = clamp(
+    20 + star01*25 + talent01*10 + audScore*20 + vfx01*vfxImp*12
+    + music01*4 + script01*8 + seasonScore*5 + noise(-5, 5), 5, 99
+  );
+
+  const avgRating = (imdb + kp) / 2;
+  const rtAvg = (rtc + rta) / 2;
+  const base = avgRating * 5 + rtAvg * 0.3 + actStar * 0.2;
+  const marketingMult = 1 + (m.marketing * 1e6) / 30_000_000;
+  const seasonMult = 1 + (seasonScore - 0.5) * 0.4;
+  const attraction = Math.round(base * marketingMult * seasonMult);
+
+  return {
+    imdb: Math.round(imdb*10)/10,
+    kp:   Math.round(kp*10)/10,
+    rtc:  Math.round(rtc),
+    rta:  Math.round(rta),
+    attraction,
+    seasonScore, audScore, rtScore, directorSkill,
+  };
+}
+
+function releaseAIFilm(s){
+  const budget = Math.min(s.money*0.35, 150_000_000);
+  const marketing = Math.min(s.money*0.1, 40_000_000);
+  if (s.money < budget + marketing) return;
+  s.money -= (budget + marketing);
+
+  const quality = clamp(s.skill + rand(-15, 15), 15, 92);
+  const genre = Math.random() < 0.6 ? s.favoriteGenre : pick(GENRES).id;
+  const ratings = {
+    imdb: Math.round(clamp(3 + quality/12 + rand(-0.5, 0.5), 2, 9.2)*10)/10,
+    kp:   Math.round(clamp(3 + quality/12 + rand(-0.5, 0.5), 2, 9.2)*10)/10,
+    rtc:  Math.round(clamp(20 + quality*0.7 + rand(-10, 10), 10, 95)),
+    rta:  Math.round(clamp(25 + quality*0.7 + rand(-10, 10), 10, 95)),
+  };
+  const avg = (ratings.imdb + ratings.kp) / 2;
+  const rtAvg = (ratings.rtc + ratings.rta) / 2;
+  const stars = rand(30, 70);
+  const attraction = Math.round((avg*5 + rtAvg*0.3 + stars*0.2) * (1 + budget/30_000_000));
+
+  s.films.push({
+    id:Math.random().toString(36).slice(2),
+    title:generateFilmTitle(genre), genre,
+    ratings, attraction,
+    releaseTime:state.time, status:'theaters',
+    boxOffice:0, legacy:0,
+  });
+  s.skill = Math.min(95, s.skill + 0.02);
+}
+
+// ============ FILM MODAL ============
+function openFilmModal(){
+  if (!state.playing) return;
+  const p = state.player;
+
+  state.filmModal = {
+    title:'', titleTouched:false,
+    genre:'action',
+    audience:'teens',
+    season:'summer',
+    runtime:120,
+    script:12,
+    vfx:8,
+    music:3,
+    marketing:15,
+    actors:[],
+    directorType:'self',
+    hiredDirector:null,
+  };
+  state.filmModal.title = generateFilmTitle('action');
+  document.getElementById('inp-film-title').value = state.filmModal.title;
+
+  document.getElementById('slider-runtime').value = state.filmModal.runtime;
+  document.getElementById('slider-script').value = state.filmModal.script;
+  document.getElementById('slider-vfx').value = state.filmModal.vfx;
+  document.getElementById('slider-music').value = state.filmModal.music;
+  document.getElementById('slider-marketing').value = state.filmModal.marketing;
+
+  // FIX: сначала показываем модалку, потом рендерим (с защитой)
+  document.getElementById('modal-film').classList.add('show');
+  try {
+    renderFilmModal();
+  } catch (e) {
+    console.error('renderFilmModal error:', e);
+  }
+}
+
+function filmTotalCost(m){
+  const base = (m.script + m.vfx + m.music + m.marketing) * 1e6;
+  const actorsCost = m.actors.reduce((s,a)=>s+a.cost, 0);
+  const directorCost = (m.directorType === 'hired' && m.hiredDirector) ? m.hiredDirector.cost : 0;
+  return base + actorsCost + directorCost;
+}
+
+function renderFilmModal(){
+  const m = state.filmModal;
+  const p = state.player;
+
+  const grid = document.getElementById('genre-grid');
+  grid.innerHTML = '';
+  const hottest = [...GENRES].sort((a,b)=>(state.trends[b.id]||0)-(state.trends[a.id]||0))[0].id;
+  GENRES.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'genre-btn' + (m.genre === g.id ? ' active' : '');
+    btn.innerHTML = `<span class="gicon">${g.icon}</span><span>${g.name}</span>` +
+      (g.id === hottest ? `<span class="hot-tag">🔥</span>` : '');
+    btn.onclick = () => {
+      m.genre = g.id;
+      m.audience = Object.entries(GENRE_AUD_SCORE[g.id]).sort((a,b)=>b[1]-a[1])[0][0];
+      m.season = Object.entries(GENRE_SEASON_SCORE[g.id]).sort((a,b)=>b[1]-a[1])[0][0];
+      m.runtime = GENRE_RUNTIME[g.id];
+      document.getElementById('slider-runtime').value = m.runtime;
+      if (!m.titleTouched){
+        m.title = generateFilmTitle(g.id);
+        document.getElementById('inp-film-title').value = m.title;
+      }
+      renderFilmModal();
+    };
+    grid.appendChild(btn);
+  });
+
+  const audGrid = document.getElementById('audience-grid');
+  audGrid.innerHTML = '';
+  const bestAud = Object.entries(GENRE_AUD_SCORE[m.genre]).sort((a,b)=>b[1]-a[1])[0][0];
+  AUDIENCES.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn' + (m.audience === a.id ? ' active' : '') + (a.id === bestAud ? ' recommended' : '');
+    btn.textContent = a.name;
+    btn.onclick = () => { m.audience = a.id; renderFilmModal(); };
+    audGrid.appendChild(btn);
+  });
+
+  const seGrid = document.getElementById('season-grid');
+  seGrid.innerHTML = '';
+  const bestSeason = Object.entries(GENRE_SEASON_SCORE[m.genre]).sort((a,b)=>b[1]-a[1])[0][0];
+  SEASONS.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn' + (m.season === s.id ? ' active' : '') + (s.id === bestSeason ? ' recommended' : '');
+    btn.textContent = s.name;
+    btn.onclick = () => { m.season = s.id; renderFilmModal(); };
+    seGrid.appendChild(btn);
+  });
+
+  document.getElementById('runtime-val').textContent = m.runtime + ' мин';
+  document.getElementById('runtime-hint').textContent = `Оптимум для «${GENRE_MAP[m.genre].name}»: ~${GENRE_RUNTIME[m.genre]} мин`;
+  document.getElementById('script-val').textContent = m.script + 'M ₽';
+  document.getElementById('vfx-val').textContent = m.vfx + 'M ₽';
+  document.getElementById('music-val').textContent = m.music + 'M ₽';
+  document.getElementById('marketing-val').textContent = m.marketing + 'M ₽';
+
+  const actorGrid = document.getElementById('actor-grid');
+  actorGrid.innerHTML = '';
+  ACTORS.forEach(a => {
+    const isSel = m.actors.some(x => x.name === a.name);
+    const btn = document.createElement('button');
+    btn.className = 'actor-card' + (isSel ? ' active' : '');
+    const favIcons = a.fav.map(g => GENRE_MAP[g].icon).join(' ');
+    btn.innerHTML = `
+      <div class="actor-name">${a.name}</div>
+      <div class="actor-stat">⭐${a.star} 🎭${a.talent}</div>
+      <div class="actor-fav">${favIcons}</div>
+      <div class="actor-cost">${a.cost/1_000_000}M ₽</div>
+    `;
+    btn.onclick = () => {
+      const idx = m.actors.findIndex(x => x.name === a.name);
+      if (idx >= 0) m.actors.splice(idx, 1);
+      else if (m.actors.length < 3) m.actors.push(a);
+      renderFilmModal();
+    };
+    actorGrid.appendChild(btn);
+  });
+
+  const dirGrid = document.getElementById('director-grid');
+  dirGrid.innerHTML = '';
+  const selfBtn = document.createElement('button');
+  selfBtn.className = 'actor-card' + (m.directorType === 'self' ? ' active' : '');
+  selfBtn.innerHTML = `
+    <div class="actor-name">Сам — ${p.director}</div>
+    <div class="actor-stat">Навык: ${p.skill} · Бесплатно</div>
+    <div class="actor-fav">Ваш стиль: ${p.style}</div>
+    <div class="actor-cost">0M ₽</div>
+  `;
+  selfBtn.onclick = () => { m.directorType = 'self'; m.hiredDirector = null; renderFilmModal(); };
+  dirGrid.appendChild(selfBtn);
+
+  DIRECTORS.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'actor-card' + (m.directorType === 'hired' && m.hiredDirector && m.hiredDirector.name === d.name ? ' active' : '');
+    const favIcons = d.fav.map(g => GENRE_MAP[g].icon).join(' ');
+    btn.innerHTML = `
+      <div class="actor-name">${d.name}</div>
+      <div class="actor-stat">Навык: ${d.skill}</div>
+      <div class="actor-fav">${favIcons}</div>
+      <div class="actor-cost">${d.cost/1_000_000}M ₽</div>
+    `;
+    btn.onclick = () => { m.directorType = 'hired'; m.hiredDirector = d; renderFilmModal(); };
+    dirGrid.appendChild(btn);
+  });
+
+  const total = filmTotalCost(m);
+  const totalM = total / 1e6;
+  const availM = p.money / 1e6;
+  document.getElementById('budget-total').textContent = totalM.toFixed(0) + 'M ₽';
+  document.getElementById('budget-available').textContent = availM.toFixed(0) + 'M ₽';
+  const bar = document.getElementById('budget-bar');
+  bar.classList.toggle('over', total > p.money);
+
+  const stats = buildFilmStats(m, true);
+  document.getElementById('pred-imdb').textContent = stats.imdb.toFixed(1);
+  document.getElementById('pred-kp').textContent = stats.kp.toFixed(1);
+  document.getElementById('pred-rtc').textContent = stats.rtc + '%';
+  document.getElementById('pred-rta').textContent = stats.rta + '%';
+  document.getElementById('pred-attraction').textContent = stats.attraction;
+
+  const btn = document.getElementById('btnConfirmFilm');
+  btn.disabled = total > p.money;
+  btn.textContent = total > p.money ? 'Недостаточно средств' : 'В производство';
+}
+
+function confirmFilm(){
+  const m = state.filmModal;
+  const p = state.player;
+  const total = filmTotalCost(m);
+  if (total > p.money) return;
+
+  const title = (document.getElementById('inp-film-title').value.trim()) || generateFilmTitle(m.genre);
+  const stats = buildFilmStats(m, false);
+
+  p.money -= total;
+  p.productions.push({
+    title, genre:m.genre,
+    budget:total, marketing:m.marketing*1e6,
+    ratings:{ imdb:stats.imdb, kp:stats.kp, rtc:stats.rtc, rta:stats.rta },
+    attraction:stats.attraction,
+    readyAt:state.time + PRODUCTION_SECONDS,
+    startedAt:state.time,
+  });
+
+  document.getElementById('modal-film').classList.remove('show');
+  toast(`«${title}» в производстве (${(total/1e6).toFixed(0)}M ₽)`);
+  renderAll();
+}
+
+// ============ RENDER GAME ============
+function renderAll(){
+  if (!state.playing) return;
+  const p = state.player;
+  document.getElementById('hdrStudio').textContent = p.name;
+  document.getElementById('hdrMoney').textContent = fmtMoney(p.money);
+  document.getElementById('hdrLegacy').textContent = Math.floor(p.legacy);
+  document.getElementById('hdrRank').textContent = '#' + p.rank;
+  document.getElementById('hdrTime').textContent = fmtTime(state.time);
+  renderTheater(); renderProductions(); renderTrends(); renderLeaderboard(); renderFilmography();
+}
+
+function ratingClass(value, thresholds){
+  if (value >= thresholds[0]) return 'good';
+  if (value >= thresholds[1]) return 'ok';
+  return 'bad';
+}
+
+function renderRatingsLine(ratings, compact){
+  const imdbCls = ratingClass(ratings.imdb, [7.5, 6.0]);
+  const kpCls = ratingClass(ratings.kp, [7.5, 6.0]);
+  const rtcCls = ratingClass(ratings.rtc, [70, 50]);
+  const rtaCls = ratingClass(ratings.rta, [70, 50]);
+  if (compact){
+    return `<div class="ratings-line">
+      <span class="rating ${imdbCls}">IMDb ${ratings.imdb.toFixed(1)}</span>
+      <span class="rating ${rtcCls}">🍅 ${ratings.rtc}%</span>
+    </div>`;
+  }
+  return `<div class="ratings-line">
+    <span class="rating ${imdbCls}">IMDb ${ratings.imdb.toFixed(1)}</span>
+    <span class="rating ${kpCls}">КП ${ratings.kp.toFixed(1)}</span>
+    <span class="rating ${rtcCls}">🍅 ${ratings.rtc}%</span>
+    <span class="rating ${rtaCls}">🍿 ${ratings.rta}%</span>
+  </div>`;
+}
+
+function renderTheater(){
+  const p = state.player;
+  const allInTheaters = [];
+  for (const s of state.studios){
+    for (const f of s.films){
+      if (f.status === 'theaters') allInTheaters.push({ film:f, studio:s, isPlayer:s.isPlayer });
+    }
+  }
+  let totalAttr = 0;
+  allInTheaters.forEach(x => totalAttr += x.film.attraction);
+
+  const myFilms = allInTheaters.filter(x => x.isPlayer);
+  const compFilms = allInTheaters.filter(x => !x.isPlayer).sort((a,b) => b.film.attraction - a.film.attraction);
+
+  const el = document.getElementById('theater-list');
+  let html = '';
+
+  if (myFilms.length === 0){
+    html += '<div class="empty-state" style="padding:10px 0;">Ваших фильмов нет в прокате</div>';
+  } else {
+    html += myFilms.map(({film:f}) => {
+      const prog = Math.min(100, (state.time - f.releaseTime)/THEATRICAL_SECONDS*100);
+      const share = totalAttr > 0 ? f.attraction/totalAttr*100 : 0;
+      return `<div class="film-card player-film">
+        <div class="film-header">
+          <span class="film-title">${escapeHtml(f.title)}</span>
+          <span class="film-genre">${GENRE_MAP[f.genre].icon}</span>
+        </div>
+        <div class="film-progress"><div class="film-progress-bar" style="width:${prog}%"></div></div>
+        <div class="film-stats">
+          <span class="bo">${fmtMoney(f.boxOffice)}</span>
+          <span class="share">${share.toFixed(1)}% экрана</span>
+        </div>
+        ${renderRatingsLine(f.ratings, false)}
+      </div>`;
+    }).join('');
+  }
+
+  if (compFilms.length > 0){
+    html += `<div class="comp-header"><span>Фильмы конкурентов</span><strong>${compFilms.length}</strong></div>`;
+    const show = compFilms.slice(0, 6);
+    html += show.map(({film:f, studio:s}) => {
+      const share = totalAttr > 0 ? f.attraction/totalAttr*100 : 0;
+      return `<div class="film-card compact">
+        <div class="film-header">
+          <span class="film-title">${escapeHtml(f.title)}</span>
+          <span style="color:var(--accent);font-weight:bold;font-size:12px;flex-shrink:0;">${share.toFixed(1)}%</span>
+        </div>
+        <div class="film-stats" style="margin-top:4px;">
+          <span>${GENRE_MAP[f.genre].icon} ${GENRE_MAP[f.genre].name}</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.name)}</span>
+        </div>
+        ${renderRatingsLine(f.ratings, true)}
+      </div>`;
+    }).join('');
+    if (compFilms.length > show.length){
+      html += `<div class="comp-more">и ещё ${compFilms.length - show.length} фильмов</div>`;
+    }
+  }
+
+  el.innerHTML = html;
+}
+
+function renderProductions(){
+  const p = state.player;
+  const el = document.getElementById('production-list');
+  if (p.productions.length === 0){
+    el.innerHTML = '<div class="empty-state">Нет проектов в производстве</div>';
+  } else {
+    el.innerHTML = p.productions.map(pr => {
+      const total = pr.readyAt - pr.startedAt;
+      const done = Math.min(total, state.time - pr.startedAt);
+      const prog = Math.min(100, done/total*100);
+      return `<div class="film-card">
+        <div class="film-header">
+          <span class="film-title">${escapeHtml(pr.title)}</span>
+          <span class="film-genre">${GENRE_MAP[pr.genre].icon}</span>
+        </div>
+        <div class="film-progress"><div class="film-progress-bar" style="width:${prog}%"></div></div>
+        <div class="film-stats">
+          <span>Бюджет: ${fmtMoney(pr.budget)}</span>
+          <span class="share">${Math.floor(prog)}%</span>
+        </div>
+        ${renderRatingsLine(pr.ratings, true)}
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('btnNewFilm').disabled = state.player.money < 10_000_000;
+}
+
+function renderTrends(){
+  const el = document.getElementById('trends-list');
+  const hottest = [...GENRES].sort((a,b)=>(state.trends[b.id]||0)-(state.trends[a.id]||0))[0].id;
+  el.innerHTML = GENRES.map(g => {
+    const v = state.trends[g.id]||0;
+    const isHot = g.id === hottest;
+    return `<div class="trend-row ${isHot?'hot':''}">
+      <span class="tname">${g.icon} ${g.name}</span>
+      <div class="tbar-wrap"><div class="tbar" style="width:${Math.round(v*100)}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderLeaderboard(){
+  const sorted = [...state.studios].sort((a,b) => studioScore(b) - studioScore(a));
+  const playerRank = sorted.findIndex(s => s.isPlayer) + 1;
+  const display = sorted.slice(0, 10);
+  let html = display.map((s,i) => `
+    <div class="lb-row ${s.isPlayer?'player':''} ${i===0?'top1':''}">
+      <span class="lb-rank">${i+1}</span>
+      <span class="lb-name">${escapeHtml(s.name)}</span>
+      <span class="lb-score">${Math.round(studioScore(s))}</span>
+    </div>`).join('');
+  if (playerRank > 10){
+    const pl = sorted[playerRank-1];
+    html += `<div class="lb-row" style="color:var(--muted);text-align:center;font-size:11px;padding:4px;">···</div>
+      <div class="lb-row player">
+        <span class="lb-rank">${playerRank}</span>
+        <span class="lb-name">${escapeHtml(pl.name)}</span>
+        <span class="lb-score">${Math.round(studioScore(pl))}</span>
+      </div>`;
+  }
+  document.getElementById('leaderboard').innerHTML = html;
+}
+
+function renderFilmography(){
+  const p = state.player;
+  const done = p.films.filter(f => f.status === 'done').slice().reverse();
+  const el = document.getElementById('filmography');
+  if (done.length === 0){
+    el.innerHTML = '<div class="empty-state">Пока нет завершённых фильмов</div>';
+    return;
+  }
+  el.innerHTML = done.slice(0,5).map(f => `
+    <div class="film-card">
+      <div class="film-header">
+        <span class="film-title">${escapeHtml(f.title)}</span>
+        <span class="film-genre">${GENRE_MAP[f.genre].icon}</span>
+      </div>
+      <div class="film-stats">
+        <span class="bo">${fmtMoney(f.boxOffice)}</span>
+        <span class="share">+${f.legacy} наследия</span>
+      </div>
+      ${renderRatingsLine(f.ratings, false)}
+    </div>
+  `).join('');
+}
+
+// ============ TOAST / RESULT ============
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+function showResult(title, text, detail){
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-text').textContent = text;
+  document.getElementById('result-detail').textContent = detail;
+  document.getElementById('modal-result').classList.add('show');
+}
+
+// ============ EVENTS ============
+document.getElementById('btnStart').addEventListener('click', () => showScreen('create'));
+document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('modal-help').classList.add('show'));
+document.getElementById('btnCloseHelp').addEventListener('click', () => document.getElementById('modal-help').classList.remove('show'));
+
+let selectedStyle = 'visionary';
+document.querySelectorAll('.style-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedStyle = btn.dataset.style;
+  });
+});
+
+document.getElementById('btnCreate').addEventListener('click', () => {
+  const sName = (document.getElementById('inpStudio').value || 'Моя Студия').trim();
+  const dName = (document.getElementById('inpDirector').value || 'Режиссёр').trim();
+  initGame(sName, dName, selectedStyle);
+});
+
+document.getElementById('btnNewFilm').addEventListener('click', openFilmModal);
+document.getElementById('btnCancelFilm').addEventListener('click', () => {
+  document.getElementById('modal-film').classList.remove('show');
+});
+document.getElementById('btnConfirmFilm').addEventListener('click', confirmFilm);
+
+document.getElementById('slider-runtime').addEventListener('input', e => { state.filmModal.runtime = parseInt(e.target.value); renderFilmModal(); });
+document.getElementById('slider-script').addEventListener('input', e => { state.filmModal.script = parseInt(e.target.value); renderFilmModal(); });
+document.getElementById('slider-vfx').addEventListener('input', e => { state.filmModal.vfx = parseInt(e.target.value); renderFilmModal(); });
+document.getElementById('slider-music').addEventListener('input', e => { state.filmModal.music = parseInt(e.target.value); renderFilmModal(); });
+document.getElementById('slider-marketing').addEventListener('input', e => { state.filmModal.marketing = parseInt(e.target.value); renderFilmModal(); });
+
+document.getElementById('inp-film-title').addEventListener('input', e => {
+  state.filmModal.title = e.target.value;
+  state.filmModal.titleTouched = true;
+});
+document.getElementById('btn-reroll-title').addEventListener('click', () => {
+  state.filmModal.title = generateFilmTitle(state.filmModal.genre);
+  document.getElementById('inp-film-title').value = state.filmModal.title;
+  state.filmModal.titleTouched = false;
+});
+
+document.querySelectorAll('.tb-speed button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tb-speed button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.speed = parseInt(btn.dataset.speed);
+  });
+});
+
+document.getElementById('btnResultOk').addEventListener('click', () => {
+  document.getElementById('modal-result').classList.remove('show');
+  state.playing = false;
+  showScreen('menu');
+});
+
+showScreen('menu');
+</script>
+</body>
+</html>
